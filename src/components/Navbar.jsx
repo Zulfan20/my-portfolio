@@ -76,7 +76,7 @@ export default function Navbar({ setPage, currentPage, isAdmin, onAdminLoginClic
             </div>
 
             {/* Tombol Admin (hanya terlihat di desktop) */}
-            <div className="hidden md:block mt-auto"> 
+            {/* <div className="hidden md:block mt-auto"> 
                 {isAdmin ? (
                     <button 
                         onClick={onLogout}
@@ -94,7 +94,7 @@ export default function Navbar({ setPage, currentPage, isAdmin, onAdminLoginClic
                         <span className="hidden lg:block">Admin Login</span>
                     </button>
                 )}
-            </div>
+            </div> */}
             
         </nav>
     );

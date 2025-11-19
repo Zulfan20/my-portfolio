@@ -23,10 +23,10 @@ export default function ProjectsPage({ isAdmin, projects, setEditingItem, handle
         return projects.filter(project => project.category === activeFilter);
     }, [activeFilter, projects]);
 
-    let subtitle = "Semua proyek saya di satu tempat.";
-    if (activeFilter === 'AI') subtitle = "Pekerjaan saya di bidang Kecerdasan Buatan.";
-    if (activeFilter === 'DS') subtitle = "Pekerjaan saya di bidang Data Science.";
-    if (activeFilter === 'SD') subtitle = "Pekerjaan saya di bidang Pengembangan Perangkat Lunak.";
+    let subtitle = "All my projects in one place.";
+    if (activeFilter === 'AI') subtitle = "My work in Artificial Intelligence.";
+    if (activeFilter === 'DS') subtitle = "My work in Data Science.";
+    if (activeFilter === 'SD') subtitle = "My work in Software Development.";
 
     return (
         <div className="max-w-6xl mx-auto">
