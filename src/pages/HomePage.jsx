@@ -10,16 +10,15 @@ import {
     Save,
     Cpu,
     Database,
-    Layers,
-    BookOpen
+    Layers
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+// Mengimpor kartu
 import ProjectCard from '../components/ProjectCard.jsx';
 import CertificationCard from '../components/CertificationCard.jsx';
 import PublicationCard from '../components/PublicationCard.jsx'; 
-
 
 // --- Komponen Kartu Keahlian (Sub-komponen) ---
 function ExpertiseCard({ icon, title, description }) {
@@ -47,40 +46,46 @@ export default function HomePage({
     isAdmin, 
     homeContent, 
     handleSaveHomeContent,
-    portfolioCVContent, // <-- Prop untuk toolkit
-    // --- PERBAIKAN --- Hapus prop yang tidak perlu
+    portfolioCVContent, 
+    aboutMeContent, 
+    handleSaveAboutMeContent, 
     setPage,
     projects, 
     certifications,
     publications 
 }) {
     
-    // --- PERBAIKAN --- Menambahkan kembali state 'isEditing'
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
-    // --- PERBAIKAN BUG ---
-    // Menggunakan 'homeContent' untuk SEMUA data di halaman ini
-    const [editableContent, setEditableContent] = useState(homeContent);
+    const [editableContent, setEditableContent] = useState({ 
+        ...homeContent, 
+        aboutMe: aboutMeContent?.body || "" 
+    });
 
     useEffect(() => {
-        // Menggunakan 'homeContent' (yang tidak lagi 'null')
         setEditableContent({
-            headline: homeContent.headline || '',
-            bio: homeContent.bio || '',
-            subtitle: homeContent.subtitle || '',
-            githubUrl: homeContent.githubUrl || '',
-            linkedinUrl: homeContent.linkedinUrl || '',
-            aboutMe: homeContent.aboutMe || '' // <-- Mengambil 'aboutMe' dari 'homeContent'
+            headline: homeContent?.headline || '',
+            bio: homeContent?.bio || '',
+            subtitle: homeContent?.subtitle || '',
+            githubUrl: homeContent?.githubUrl || '',
+            linkedinUrl: homeContent?.linkedinUrl || '',
+            aboutMe: aboutMeContent?.body || '' 
         });
-    }, [homeContent]); // Hanya bergantung pada 'homeContent'
+    }, [homeContent, aboutMeContent]);
 
-    // --- PERBAIKAN --- Fungsi onSave sekarang HANYA menyimpan 'homeContent'
     const onSave = async () => {
         setIsSaving(true); 
         try {
-            // 'editableContent' sekarang HANYA berisi data 'home'
-            await handleSaveHomeContent(editableContent);
+            const homeDataToSave = {
+                headline: editableContent.headline,
+                bio: editableContent.bio,
+                subtitle: editableContent.subtitle,
+                githubUrl: editableContent.githubUrl,
+                linkedinUrl: editableContent.linkedinUrl
+            };
+            await handleSaveHomeContent(homeDataToSave);
+            await handleSaveAboutMeContent({ body: editableContent.aboutMe });
             setIsEditing(false); 
         } catch (error) {
             console.error("Error saving content:", error);
@@ -88,8 +93,6 @@ export default function HomePage({
             setIsSaving(false); 
         }
     };
-
-    // --- (Sisa logika tetap sama) ---
 
     const featuredProjects = [...projects]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -103,25 +106,19 @@ export default function HomePage({
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 3);
 
-    // "My Toolkit" sekarang dinamis dari CMS
     const skillsObj = portfolioCVContent?.skills || { ai: [], ds: [], sd: [] };
     const techStack = [
         ...(skillsObj.ai || []).map(s => s.name), 
         ...(skillsObj.ds || []).map(s => s.name), 
         ...(skillsObj.sd || []).map(s => s.name)
     ];
-    // Menghapus duplikat jika ada
     const uniqueTechStack = [...new Set(techStack)];
 
-    // --- (Varian Animasi tetap sama) ---
     const containerVariants = {
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
-            transition: {
-                staggerChildren: 0.08,
-                delayChildren: 0.2
-            }
+            transition: { staggerChildren: 0.08, delayChildren: 0.2 }
         }
     };
     const wordVariants = {
@@ -145,7 +142,7 @@ export default function HomePage({
     return (
         <div className="max-w-6xl mx-auto">
             {isEditing ? (
-                // --- Tampilan Admin Saat Mengedit ---
+                // --- FORM EDIT ---
                 <div className="space-y-4 bg-white p-6 rounded-lg shadow-md">
                     <h2 className="text-2xl font-bold text-blue-900 border-b pb-2">Edit Home Page Content</h2>
                     <h3 className="text-lg font-semibold text-gray-700 mt-4">Hero Section</h3>
@@ -204,7 +201,7 @@ export default function HomePage({
                     </div>
                 </div>
             ) : (
-                // --- Tampilan Publik (Dengan Animasi) ---
+                // --- TAMPILAN PUBLIK ---
                 <motion.div>
                     <motion.h1
                         key={editableContent.headline} 
@@ -296,7 +293,6 @@ export default function HomePage({
                 </motion.div>
             )}
             
-            {/* --- PERBAIKAN --- Tombol Admin sekarang berfungsi --- */}
             {isAdmin && (
                 <div className="mt-6">
                     {isEditing ? (
@@ -312,7 +308,7 @@ export default function HomePage({
                             <button 
                                 onClick={() => setIsEditing(false)} 
                                 className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
-                                disabled={isSaving} // Nonaktifkan tombol "Cancel" saat menyimpan
+                                disabled={isSaving}
                             >
                                 Cancel
                             </button>
@@ -397,99 +393,9 @@ export default function HomePage({
                 </div>
             </motion.div>
 
-            {featuredProjects.length > 0 && (
-                <motion.div 
-                    className="mt-16"
-                    initial="hidden"
-                    whileInView="show"
-                    viewport={{ once: true, amount: 0.2 }}
-                    variants={scrollVariants}
-                >
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold text-blue-900">Featured Projects</h2>
-                        <motion.button
-                            onClick={() => setPage('projects')} 
-                            className="text-blue-600 font-medium hover:text-blue-800 flex items-center"
-                            whileHover={{ x: 5 }}
-                            transition={{ type: 'spring', stiffness: 400 }}
-                        >
-                            View All <ArrowRight className="w-4 h-4 ml-1" />
-                        </motion.button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {featuredProjects.map((project) => (
-                            <ProjectCard 
-                                key={project.id} 
-                                project={project} 
-                                isAdmin={false} 
-                            />
-                        ))}
-                    </div>
-                </motion.div>
-            )}
-
-            {latestCerts.length > 0 && (
-                <motion.div 
-                    className="mt-16"
-                    initial="hidden"
-                    whileInView="show"
-                    viewport={{ once: true, amount: 0.2 }}
-                    variants={scrollVariants}
-                >
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold text-blue-900">Latest Certifications</h2>
-                        <motion.button
-                            onClick={() => setPage('certifications')}
-                            className="text-blue-600 font-medium hover:text-blue-800 flex items-center"
-                            whileHover={{ x: 5 }}
-                            transition={{ type: 'spring', stiffness: 400 }}
-                        >
-                            View All <ArrowRight className="w-4 h-4 ml-1" />
-                        </motion.button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {latestCerts.map((cert) => (
-                            <CertificationCard 
-                                key={cert.id} 
-                                cert={cert} 
-                                isAdmin={false}
-                            />
-                        ))}
-                    </div>
-                </motion.div>
-            )}
             
-            {latestPubs.length > 0 && (
-                <motion.div 
-                    className="mt-16"
-                    initial="hidden"
-                    whileInView="show"
-                    viewport={{ once: true, amount: 0.2 }}
-                    variants={scrollVariants}
-                >
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold text-blue-900">Latest Publications</h2>
-                        <motion.button
-                            onClick={() => setPage('publications')}
-                            className="text-blue-600 font-medium hover:text-blue-800 flex items-center"
-                            whileHover={{ x: 5 }}
-                            transition={{ type: 'spring', stiffness: 400 }}
-                        >
-                            View All <ArrowRight className="w-4 h-4 ml-1" />
-                        </motion.button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {latestPubs.map((pub) => (
-                            <PublicationCard 
-                                key={pub.id} 
-                                pub={pub} 
-                                isAdmin={false}
-                            />
-                        ))}
-                    </div>
-                </motion.div>
-            )}
 
+            {/* --- BAGIAN CTA --- */}
             <motion.div
                 className="mt-20 text-center bg-white p-10 rounded-lg shadow-card border border-blue-100"
                 initial="hidden"

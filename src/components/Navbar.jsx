@@ -36,7 +36,7 @@ export default function Navbar({ setPage, currentPage, isAdmin, onAdminLoginClic
         >
             
             {/* Judul (hanya terlihat di desktop) */}
-            <h1 className="hidden md:block text-2xl font-bold text-blue-600 mb-12">My Portfolio</h1>
+            <h1 className="hidden md:block text-2xl font-bold text-blue-600 mb-12"></h1>
             
             {/* Wrapper untuk item menu */}
             <div className="flex flex-row justify-around md:flex-col w-full md:w-auto">

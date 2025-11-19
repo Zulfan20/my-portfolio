@@ -13,6 +13,7 @@ import {
     onSnapshot, 
     setDoc, 
     addDoc, 
+    updateDoc, // <-- BARU: Diperlukan untuk Pin
     deleteDoc, 
     query,
     orderBy,
@@ -61,7 +62,6 @@ export default function App() {
     const [showAdminLogin, setShowAdminLogin] = useState(false);
     const [showPortfolioEditModal, setShowPortfolioEditModal] = useState(false);
     
-    // --- PERBAIKAN --- Inisialisasi state sebagai 'null' untuk melacak loading
     const [homeContent, setHomeContent] = useState(null); 
     const [portfolioCVContent, setPortfolioCVContent] = useState(null); 
     const [certPageContent, setCertPageContent] = useState(null);
@@ -104,12 +104,10 @@ export default function App() {
         // Get Home Content
         const homeDocRef = doc(db, publicDataPath, 'portfolioContent', 'home');
         const unsubHome = onSnapshot(homeDocRef, (doc) => {
-            if (doc.exists()) { 
-                setHomeContent(doc.data()); 
-            } else if (isAdmin) {
+            if (doc.exists()) { setHomeContent(doc.data()); } 
+            else if (isAdmin) {
                  const defaultHome = { 
-                    headline: "Your Name Here", 
-                    bio: "Your professional bio.",
+                    headline: "Your Name Here", bio: "Your professional bio.",
                     subtitle: "AI Engineer | Data Scientist | Software Developer",
                     githubUrl: "https://github.com/Zulfan20",
                     linkedinUrl: "https://linkedin.com/in/muhammad-zulfan-abidin-b4427b212",
@@ -117,9 +115,7 @@ export default function App() {
                 };
                  setDoc(homeDocRef, defaultHome);
                  setHomeContent(defaultHome);
-            } else {
-                setHomeContent({}); 
-            }
+            } else { setHomeContent({}); }
         });
 
         // Get Portfolio CV Content
@@ -127,7 +123,6 @@ export default function App() {
         const unsubPortfolioCV = onSnapshot(portfolioCVDocRef, (doc) => {
             if (doc.exists()) {
                 const data = doc.data();
-                // Memastikan data yang dimuat memiliki struktur yang benar
                 if (!data.skills || !data.skills.ai) {
                     const convertedData = {
                         ...data,
@@ -148,47 +143,34 @@ export default function App() {
                         sd: [{name: "React", level: 70}, {name: "Firebase", level: 80}]
                     },
                     journey: [
-                        { year: "2024", description: "Started my journey in Computer Science." },
-                        { year: "2025", description: "Began focusing on AI and full-stack development." }
+                        { title: "Example Education", company: "Your University", position: "Student", period: "2022 - 2026", description: "Studying Computer Science." }
                     ]
                 };
                 setDoc(portfolioCVDocRef, defaultCV);
                 setPortfolioCVContent(defaultCV); 
-            } else {
-                setPortfolioCVContent({}); 
-            }
+            } else { setPortfolioCVContent({}); }
         });
 
         // Get Cert Page Content
         const certPageDocRef = doc(db, publicDataPath, 'portfolioContent', 'certPage');
         const unsubCertPage = onSnapshot(certPageDocRef, (doc) => {
-            if (doc.exists()) {
-                setCertPageContent(doc.data());
-            } else if (isAdmin) {
-                const defaultCert = {
-                    description: "Ini adalah daftar sertifikasi dan kursus profesional yang telah saya selesaikan."
-                };
+            if (doc.exists()) { setCertPageContent(doc.data()); } 
+            else if (isAdmin) {
+                const defaultCert = { description: "Ini adalah daftar sertifikasi dan kursus profesional yang telah saya selesaikan." };
                 setDoc(certPageDocRef, defaultCert);
                 setCertPageContent(defaultCert);
-            } else {
-                setCertPageContent({ description: "Ini adalah daftar sertifikasi..." });
-            }
+            } else { setCertPageContent({ description: "Ini adalah daftar sertifikasi..." }); }
         });
 
         // Get Pub Page Content
         const pubPageDocRef = doc(db, publicDataPath, 'portfolioContent', 'pubPage');
         const unsubPubPage = onSnapshot(pubPageDocRef, (doc) => {
-            if (doc.exists()) {
-                setPubPageContent(doc.data());
-            } else if (isAdmin) {
-                const defaultPub = {
-                    description: "Berikut adalah daftar penelitian dan publikasi akademik saya."
-                };
+            if (doc.exists()) { setPubPageContent(doc.data()); } 
+            else if (isAdmin) {
+                const defaultPub = { description: "Berikut adalah daftar penelitian dan publikasi akademik saya." };
                 setDoc(pubPageDocRef, defaultPub);
                 setPubPageContent(defaultPub);
-            } else {
-                setPubPageContent({ description: "Berikut adalah daftar penelitian..." });
-            }
+            } else { setPubPageContent({ description: "Berikut adalah daftar penelitian..." }); }
         });
 
         // (Listener lain tetap sama)
@@ -206,24 +188,17 @@ export default function App() {
         });
         const messagesQuery = query(collection(db, publicDataPath, 'contactMessages'));
         const unsubMessages = onSnapshot(messagesQuery, (snapshot) => {
-             if (isAdmin) {
-                setContactMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-             }
+             if (isAdmin) { setContactMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); }
         });
 
         return () => {
-            unsubHome();
-            unsubPortfolioCV(); 
-            unsubCertPage();
-            unsubPubPage(); 
-            unsubProjects();
-            unsubCerts();
-            unsubPublications(); 
-            unsubMessages();
+            unsubHome(); unsubPortfolioCV(); unsubCertPage(); unsubPubPage(); 
+            unsubProjects(); unsubCerts(); unsubPublications(); unsubMessages();
         };
     }, [userId, isAdmin]);
 
     // --- CRUD Functions (Admin only) ---
+    // (Fungsi Save Content tetap sama)
     const handleSaveHomeContent = async (newContent) => {
         if (!isAdmin) return;
         const homeDocRef = doc(db, publicDataPath, 'portfolioContent', 'home');
@@ -269,6 +244,22 @@ export default function App() {
             await deleteDoc(itemDocRef);
         }
     };
+    
+    // --- FUNGSI BARU: Mengubah status 'isPinned' di Firestore ---
+    const handlePinItem = async (type, item) => {
+        if (!isAdmin) return;
+        const validTypes = ['projects', 'certifications', 'publications'];
+        if (!validTypes.includes(type)) return;
+
+        const itemDocRef = doc(db, publicDataPath, type, item.id);
+        
+        // Kita membaca status isPinned yang baru dari item yang diperbarui di state lokal
+        const newPinStatus = !item.isPinned;
+
+        await updateDoc(itemDocRef, { isPinned: newPinStatus });
+        console.log(`Item ${item.id} (${type}) pinned status set to ${newPinStatus}`);
+    };
+
     const handleContactSubmit = async (formData) => {
         const messagesColRef = collection(db, publicDataPath, 'contactMessages');
         await addDoc(messagesColRef, { 
@@ -280,7 +271,6 @@ export default function App() {
     
     // --- Page Rendering ---
     const renderPage = () => {
-        // --- PERBAIKAN BUG --- Menambahkan pemeriksaan loading
         if (!homeContent || !portfolioCVContent || !certPageContent || !pubPageContent) { 
             return (
                 <div className="flex items-center justify-center h-full">
@@ -302,14 +292,14 @@ export default function App() {
             handleSaveItem, handleDeleteItem, setEditingItem, 
             handleContactSubmit, 
             setPage,
+            handlePinItem, // <-- BARU: Mengoper fungsi pin
             onEditPortfolioClick: () => setShowPortfolioEditModal(true) 
         };
         
-        // Ini adalah struktur file ANDA yang benar
         switch (page) {
             case 'home': return <HomePage {...props} />;
-            case 'portfolio': return <PortfolioPage {...props} />; // Halaman CV/Teks Anda
-            case 'projects': return <ProjectsPage {...props} />;   // Halaman Kartu Visual Anda
+            case 'portfolio': return <PortfolioPage {...props} />; 
+            case 'projects': return <ProjectsPage {...props} />;   
             case 'certifications': return <CertificationsPage {...props} />;
             case 'publications': return <PublicationPage {...props} />;
             case 'contact': return <ContactPage {...props} />;
